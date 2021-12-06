@@ -14,6 +14,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
     using Microsoft.ServiceFabric.FabricTransport.Client;
     using Microsoft.ServiceFabric.Services.Client;
     using Microsoft.ServiceFabric.Services.Communication.Client;
+    using Microsoft.ServiceFabric.Services.Remoting.Client;
     using Microsoft.ServiceFabric.Services.Remoting.FabricTransport;
     using Microsoft.ServiceFabric.Services.Remoting.V1.Client;
 
@@ -22,8 +23,10 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
     {
         private readonly Remoting.FabricTransport.FabricTransportRemotingSettings settings;
         private readonly FabricTransportRemotingCallbackMessageHandler fabricTransportRemotingCallbackMessageHandler;
+        private IEnumerable<IExceptionConvertor> exceptionConvertors;
 
         public FabricTransportServiceRemotingClientFactoryImpl(
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
             Remoting.FabricTransport.FabricTransportRemotingSettings fabricTransportRemotingSettings = null,
             IServiceRemotingCallbackClient callbackHandler = null,
             IServicePartitionResolver servicePartitionResolver = null,
@@ -37,6 +40,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
             this.settings = fabricTransportRemotingSettings ?? FabricTransportRemotingSettings.GetDefault();
             this.fabricTransportRemotingCallbackMessageHandler =
                 new FabricTransportRemotingCallbackMessageHandler(callbackHandler);
+            this.exceptionConvertors = GetExceptionConvertors(exceptionConvertors);
         }
 
         // We don't need implementation of ClientConnection handler provided in base class , hence creating new eventHandler here.Using FabricTransport Connectionhandler implementation.
@@ -58,7 +62,11 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
                     endpoint,
                     remotingHandler,
                     this.fabricTransportRemotingCallbackMessageHandler);
-                var client = new FabricTransportServiceRemotingClient(nativeClient, remotingHandler);
+                var client = new FabricTransportServiceRemotingClient(
+                    nativeClient, 
+                    remotingHandler.Endpoint, 
+                    this.exceptionConvertors, 
+                    this.settings);
                 remotingHandler.ClientConnected += this.OnFabricTransportClientConnected;
                 remotingHandler.ClientDisconnected += this.OnFabricTransportClientDisconnected;
                 return Task.FromResult(client);
@@ -86,6 +94,21 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
         protected override bool ValidateClient(string endpoint, FabricTransportServiceRemotingClient remotingClient)
         {
             return remotingClient.IsValid && remotingClient.ConnectionAddress.Equals(endpoint);
+        }
+
+        private static IEnumerable<IExceptionConvertor> GetExceptionConvertors(
+            IEnumerable<IExceptionConvertor> exceptionConvertors)
+        {
+            var svcExceptionConvetors = new List<IExceptionConvertor>();
+            if (exceptionConvertors != null)
+            {
+                svcExceptionConvetors.AddRange(exceptionConvertors);
+            }
+
+            svcExceptionConvetors.Add(new FabricExceptionConvertor());
+            svcExceptionConvetors.Add(new SystemExceptionConvertor());
+
+            return svcExceptionConvetors;
         }
 
         private static IEnumerable<IExceptionHandler> GetExceptionHandlers(

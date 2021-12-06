@@ -53,6 +53,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
         ///     level and a <see cref="ServiceRemotingExceptionHandler"/>, in addition to the exception handlers supplied to the
         ///     constructor.
         /// </remarks>
+        [Obsolete]
         public FabricTransportServiceRemotingClientFactory(
             FabricTransportRemotingSettings fabricTransportRemotingSettings = null,
             IServiceRemotingCallbackClient callbackClient = null,
@@ -66,6 +67,60 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
             }
 
             this.impl = new FabricTransportServiceRemotingClientFactoryImpl(
+                null,
+                fabricTransportRemotingSettings,
+                callbackClient,
+                servicePartitionResolver,
+                GetExceptionHandlers(exceptionHandlers, traceId),
+                traceId);
+            this.impl.FabricTransportClientConnected += this.OnClientConnected;
+            this.impl.FabricTransportClientDisconnected += this.OnClientDisconnected;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FabricTransportServiceRemotingClientFactory"/> class.
+        ///     Constructs a fabric transport based service remoting client factory.
+        /// </summary>
+        /// <param name="exceptionConvertors">
+        ///     Convertors to convert service exception to user exception.
+        /// </param>
+        /// <param name="fabricTransportRemotingSettings">
+        ///     The settings for the fabric transport. If the settings are not provided or null, default settings
+        ///     with no security.
+        /// </param>
+        /// <param name="callbackClient">
+        ///     The callback client that receives the callbacks from the service.
+        /// </param>
+        /// <param name="servicePartitionResolver">
+        ///     Service partition resolver to resolve the service endpoints. If not specified, a default
+        ///     service partition resolver returned by <see cref="ServicePartitionResolver.GetDefault"/> is used.
+        /// </param>
+        /// <param name="exceptionHandlers">
+        ///     Exception handlers to handle the exceptions encountered in communicating with the service.
+        /// </param>
+        /// <param name="traceId">
+        ///     Id to use in diagnostics traces from this component.
+        /// </param>
+        /// <remarks>
+        ///     This factory uses an internal fabric transport exception handler to handle exceptions at the fabric TCP transport
+        ///     level and a <see cref="ServiceRemotingExceptionHandler"/>, in addition to the exception handlers supplied to the
+        ///     constructor.
+        /// </remarks>
+        public FabricTransportServiceRemotingClientFactory(
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
+            FabricTransportRemotingSettings fabricTransportRemotingSettings = null,
+            IServiceRemotingCallbackClient callbackClient = null,
+            IServicePartitionResolver servicePartitionResolver = null,
+            IEnumerable<IExceptionHandler> exceptionHandlers = null,
+            string traceId = null)
+        {
+            if (traceId == null)
+            {
+                traceId = Guid.NewGuid().ToString();
+            }
+
+            this.impl = new FabricTransportServiceRemotingClientFactoryImpl(
+                exceptionConvertors,
                 fabricTransportRemotingSettings,
                 callbackClient,
                 servicePartitionResolver,

@@ -14,6 +14,8 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
     using Microsoft.ServiceFabric.FabricTransport.V2;
     using Microsoft.ServiceFabric.FabricTransport.V2.Client;
     using Microsoft.ServiceFabric.Services.Communication;
+    using Microsoft.ServiceFabric.Services.Remoting.Client;
+    using Microsoft.ServiceFabric.Services.Remoting.FabricTransport;
     using Microsoft.ServiceFabric.Services.Remoting.V2.Client;
     using Microsoft.ServiceFabric.Services.Remoting.V2.Messaging;
 
@@ -28,14 +30,15 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
         private ExceptionConvertorHelper exceptionConvertorHelper;
 
         // we need to pass a cache of the serializers here rather than the known types,
-        // the serializer cache should be maintained by the factor
+        // the serializer cache should be maintained by the factory
         internal FabricTransportServiceRemotingClient(
             ServiceRemotingMessageSerializersManager serializersManager,
             FabricTransportClient fabricTransportClient,
             FabricTransportRemotingClientEventHandler remotingHandler,
-            IEnumerable<IExceptionConvertor> exceptionConvertors = null)
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
+            FabricTransportRemotingSettings remotingSettings)
         {
-            this.exceptionConvertorHelper = new ExceptionConvertorHelper(exceptionConvertors);
+            this.exceptionConvertorHelper = new ExceptionConvertorHelper(exceptionConvertors, remotingSettings);
             this.fabricTransportClient = fabricTransportClient;
             this.remotingHandler = remotingHandler;
             this.serializersManager = serializersManager;

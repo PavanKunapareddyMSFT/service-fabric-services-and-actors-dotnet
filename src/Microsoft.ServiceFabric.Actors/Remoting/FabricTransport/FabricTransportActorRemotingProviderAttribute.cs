@@ -17,6 +17,7 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.FabricTransport
     using Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime;
     using Microsoft.ServiceFabric.Services.Remoting.Runtime;
     using Microsoft.ServiceFabric.Services.Remoting.V2.Client;
+    using Microsoft.ServiceFabric.Services.Remoting.V2.Runtime;
 
     /// <summary>
     ///     Sets fabric TCP transport as the default remoting provider for the actors.
@@ -24,9 +25,13 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.FabricTransport
     [AttributeUsage(AttributeTargets.Assembly)]
     public class FabricTransportActorRemotingProviderAttribute : ActorRemotingProviderAttribute
     {
+        private IEnumerable<Services.Remoting.V2.Runtime.IExceptionConvertor> runtimeExceptionConvertors;
+        private IEnumerable<Services.Remoting.Client.IExceptionConvertor> clientExceptionConvertors;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="FabricTransportActorRemotingProviderAttribute"/> class which can be used to set fabric TCP transport as the default remoting provider for the actors.
         /// </summary>
+        [Obsolete]
         public FabricTransportActorRemotingProviderAttribute()
         {
 #if !DotNetCoreClr
@@ -36,6 +41,47 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.FabricTransport
             this.RemotingClientVersion = RemotingClientVersion.V2;
             this.RemotingListenerVersion = RemotingListenerVersion.V2;
 #endif
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FabricTransportActorRemotingProviderAttribute"/> class which can be used to set fabric TCP transport as the default remoting provider for the actors.
+        /// </summary>
+        /// <param name="runtimeExceptionConvertors">Service side exception convertors.</param>
+        public FabricTransportActorRemotingProviderAttribute(
+            IEnumerable<Services.Remoting.V2.Runtime.IExceptionConvertor> runtimeExceptionConvertors)
+            : this(runtimeExceptionConvertors, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FabricTransportActorRemotingProviderAttribute"/> class which can be used to set fabric TCP transport as the default remoting provider for the actors.
+        /// </summary>
+        /// <param name="clientExceptionConvertors">Client side exception convertors.</param>
+        public FabricTransportActorRemotingProviderAttribute(
+            IEnumerable<Services.Remoting.Client.IExceptionConvertor> clientExceptionConvertors)
+            : this(null, clientExceptionConvertors)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FabricTransportActorRemotingProviderAttribute"/> class which can be used to set fabric TCP transport as the default remoting provider for the actors.
+        /// </summary>
+        /// <param name="runtimeExceptionConvertors">Service side exception convertors.</param>
+        /// <param name="clientExceptionConvertors">Client side exception convertors.</param>
+        public FabricTransportActorRemotingProviderAttribute(
+           IEnumerable<Services.Remoting.V2.Runtime.IExceptionConvertor> runtimeExceptionConvertors,
+           IEnumerable<Services.Remoting.Client.IExceptionConvertor> clientExceptionConvertors)
+        {
+            this.runtimeExceptionConvertors = runtimeExceptionConvertors;
+            this.clientExceptionConvertors = clientExceptionConvertors;
+#if !DotNetCoreClr
+            this.RemotingClientVersion = RemotingClientVersion.V1;
+            this.RemotingListenerVersion = RemotingListenerVersion.V1;
+#else
+            this.RemotingClientVersion = RemotingClientVersion.V2;
+            this.RemotingListenerVersion = RemotingListenerVersion.V2;
+#endif
+
         }
 
         /// <summary>
@@ -151,7 +197,8 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.FabricTransport
                     var listenerSettings = this.InitializeListenerSettings(a);
                     return new V2.FabricTransport.Runtime.FabricTransportActorServiceRemotingListener(
                         a,
-                        listenerSettings);
+                        listenerSettings,
+                        this.runtimeExceptionConvertors);
                 });
             }
 
@@ -164,7 +211,8 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.FabricTransport
                     listenerSettings.UseWrappedMessage = true;
                     return new V2.FabricTransport.Runtime.FabricTransportActorServiceRemotingListener(
                         actorService,
-                        listenerSettings);
+                        listenerSettings,
+                        this.runtimeExceptionConvertors);
                 });
             }
 
@@ -185,7 +233,7 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.FabricTransport
                 settings.UseWrappedMessage = true;
             }
 
-            return new FabricTransportActorRemotingClientFactory(settings, callbackMessageHandler);
+            return new FabricTransportActorRemotingClientFactory(settings, callbackMessageHandler, exceptionConvertors: this.clientExceptionConvertors);
         }
 
         internal static FabricTransportRemotingListenerSettings GetActorListenerSettings(ActorService actorService)

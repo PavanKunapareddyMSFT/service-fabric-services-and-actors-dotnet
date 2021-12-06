@@ -39,8 +39,8 @@ namespace Microsoft.ServiceFabric.Actors.Tests.ExceptionConvertors
                 new Actors.Client.FabricActorExceptionConvertor(),
             };
 
-        private static Services.Remoting.V2.Client.ExceptionConvertorHelper clientHelper
-            = new Services.Remoting.V2.Client.ExceptionConvertorHelper(clientConvertors);
+        private static Services.Remoting.V2.Client.ExceptionConvertorHelperBase clientHelper
+            = new Services.Remoting.V2.Client.ExceptionConvertorHelperBase(clientConvertors);
 
         private static List<FabricException> fabricExceptions = new List<FabricException>()
         {

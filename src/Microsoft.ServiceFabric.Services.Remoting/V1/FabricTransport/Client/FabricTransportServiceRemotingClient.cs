@@ -6,6 +6,7 @@
 namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
 {
     using System;
+    using System.Collections.Generic;
     using System.Fabric;
     using System.Globalization;
     using System.Runtime.Serialization;
@@ -14,6 +15,8 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
     using Microsoft.ServiceFabric.FabricTransport.Client;
     using Microsoft.ServiceFabric.Services.Communication;
     using Microsoft.ServiceFabric.Services.Communication.Client;
+    using Microsoft.ServiceFabric.Services.Remoting.Client;
+    using Microsoft.ServiceFabric.Services.Remoting.FabricTransport;
     using Microsoft.ServiceFabric.Services.Remoting.V1.Client;
 
     internal class FabricTransportServiceRemotingClient : IServiceRemotingClient
@@ -26,11 +29,15 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
         private ResolvedServicePartition resolvedServicePartition;
         private ResolvedServiceEndpoint resolvedServiceEndpoint;
         private string listenerName;
+        private ExceptionConvertorHelper exceptionConvertorHelper;
 
         public FabricTransportServiceRemotingClient(
             FabricTransportClient nativeClient,
-            FabricTransportRemotingClientConnectionHandler remotingClientConnectionHandler)
+            FabricTransportRemotingClientConnectionHandler remotingClientConnectionHandler,
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
+            FabricTransportRemotingSettings remotingSettings)
         {
+            this.exceptionConvertorHelper = new ExceptionConvertorHelper(exceptionConvertors, remotingSettings);
             this.settings = nativeClient.Settings;
             this.ConnectionAddress = nativeClient.ConnectionAddress;
             this.IsValid = true;
@@ -108,21 +115,25 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V1.FabricTransport.Client
                     var retval = t.GetAwaiter().GetResult();
                     if (retval.IsException)
                     {
-                        var isDeserialzied =
-                            RemoteExceptionInformation.ToException(
-                                new RemoteExceptionInformation(retval.GetBody()),
-                                out var e);
-
-                        if (isDeserialzied)
+                        if (this.exceptionConvertorHelper.TryDeserializeRemoteException(retval.GetBody(), out Exception exception))
                         {
-                            throw new AggregateException(e);
+                            if (exception is AggregateException)
+                            {
+                                throw exception;
+                            }
+
+                            throw new AggregateException(exception);
                         }
                         else
                         {
-                            throw new ServiceException(e.GetType().FullName, string.Format(
-                                CultureInfo.InvariantCulture,
-                                Remoting.SR.ErrorDeserializationFailure,
-                                e.ToString()));
+                            if (exception != null)
+                            {
+                                // RemoteException.ToException sets out exception param with reason for deserialization failure.
+                                throw new ServiceException(exception.GetType().FullName, string.Format(
+                                    CultureInfo.InvariantCulture,
+                                    Remoting.SR.ErrorDeserializationFailure,
+                                    exception.ToString()));
+                            }
                         }
                     }
 

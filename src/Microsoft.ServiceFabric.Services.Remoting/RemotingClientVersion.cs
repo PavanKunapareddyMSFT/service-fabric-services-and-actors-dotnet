@@ -5,6 +5,8 @@
 
 namespace Microsoft.ServiceFabric.Services.Remoting
 {
+    using System;
+
     /// <summary>
     /// Determines the remoting stack for client
     /// </summary>

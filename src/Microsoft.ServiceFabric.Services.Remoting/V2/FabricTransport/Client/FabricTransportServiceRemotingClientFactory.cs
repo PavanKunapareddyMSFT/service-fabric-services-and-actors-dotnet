@@ -53,22 +53,68 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
         /// </param>
         /// <param name="serializationProvider">
         /// Serialization Provider to serialize and deserialize request and response.</param>
-        /// <param name="exceptionConvertors">
-        ///     Convertors to convert service exception to user exception.
-        /// </param>
         /// <remarks>
         ///     This factory uses an internal fabric transport exception handler to handle exceptions at the fabric TCP transport
         ///     level and a <see cref="ServiceRemotingExceptionHandler"/>, in addition to the exception handlers supplied to the
         ///     constructor.
         /// </remarks>
+        [Obsolete]
         public FabricTransportServiceRemotingClientFactory(
             FabricTransportRemotingSettings remotingSettings = null,
             IServiceRemotingCallbackMessageHandler remotingCallbackMessageHandler = null,
             IServicePartitionResolver servicePartitionResolver = null,
             IEnumerable<IExceptionHandler> exceptionHandlers = null,
             string traceId = null,
-            IServiceRemotingMessageSerializationProvider serializationProvider = null,
-            IEnumerable<IExceptionConvertor> exceptionConvertors = null) // Check existing usage
+            IServiceRemotingMessageSerializationProvider serializationProvider = null)
+            : this(
+                  null,
+                  remotingSettings,
+                  remotingCallbackMessageHandler,
+                  servicePartitionResolver,
+                  exceptionHandlers,
+                  traceId)
+        {
+        }
+
+        /// <summary>
+         /// Initializes a new instance of the <see cref="FabricTransportServiceRemotingClientFactory"/> class.
+         ///     Constructs a fabric transport based service remoting client factory.
+         /// </summary>
+         /// <param name="exceptionConvertors">
+         ///     Convertors to convert service exception to user exception.
+         /// </param>
+         /// <param name="remotingSettings">
+         ///     The settings for the fabric transport. If the settings are not provided or null, default settings
+         ///     with no security.
+         /// </param>
+         /// <param name="remotingCallbackMessageHandler">
+         ///     The callback client that receives the callbacks from the service.
+         /// </param>
+         /// <param name="servicePartitionResolver">
+         ///     Service partition resolver to resolve the service endpoints. If not specified, a default
+         ///     service partition resolver returned by <see cref="ServicePartitionResolver.GetDefault"/> is used.
+         /// </param>
+         /// <param name="exceptionHandlers">
+         ///     Exception handlers to handle the exceptions encountered in communicating with the service.
+         /// </param>
+         /// <param name="traceId">
+         ///     Id to use in diagnostics traces from this component.
+         /// </param>
+         /// <param name="serializationProvider">
+         /// Serialization Provider to serialize and deserialize request and response.</param>
+         /// <remarks>
+         ///     This factory uses an internal fabric transport exception handler to handle exceptions at the fabric TCP transport
+         ///     level and a <see cref="ServiceRemotingExceptionHandler"/>, in addition to the exception handlers supplied to the
+         ///     constructor.
+         /// </remarks>
+        public FabricTransportServiceRemotingClientFactory(
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
+            FabricTransportRemotingSettings remotingSettings = null,
+            IServiceRemotingCallbackMessageHandler remotingCallbackMessageHandler = null,
+            IServicePartitionResolver servicePartitionResolver = null,
+            IEnumerable<IExceptionHandler> exceptionHandlers = null,
+            string traceId = null,
+            IServiceRemotingMessageSerializationProvider serializationProvider = null)
         {
             this.Initialize(
                 remotingSettings,
@@ -82,11 +128,11 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
 
         internal FabricTransportServiceRemotingClientFactory(
             ServiceRemotingMessageSerializersManager serializersManager,
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
             FabricTransportRemotingSettings remotingSettings = null,
             IServiceRemotingCallbackMessageHandler remotingCallbackMessageHandler = null,
             IServicePartitionResolver servicePartitionResolver = null,
             IEnumerable<IExceptionHandler> exceptionHandlers = null,
-            IEnumerable<IExceptionConvertor> exceptionConvertors = null,
             string traceId = null)
         {
             this.Initialize(
@@ -260,10 +306,10 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
             this.clientFactoryImpl = new FabricTransportServiceRemotingClientFactoryImpl(
                 serializersManager,
                 remotingSettings,
+                exceptionConvertors,
                 remotingCallbackMessageHandler,
                 servicePartitionResolver,
                 exceptionHandlers,
-                exceptionConvertors,
                 traceId);
             this.clientFactoryImpl.ClientConnected += this.OnClientConnected;
             this.clientFactoryImpl.ClientDisconnected += this.OnClientDisconnected;

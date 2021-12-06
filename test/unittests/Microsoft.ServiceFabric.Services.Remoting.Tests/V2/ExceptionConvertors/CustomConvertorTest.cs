@@ -38,8 +38,8 @@ namespace Microsoft.ServiceFabric.Services.Remoting.Tests.V2.ExceptionConvertors
                     RemotingExceptionDepth = 2,
                 });
 
-        private static Remoting.V2.Client.ExceptionConvertorHelper clientHelper
-            = new Remoting.V2.Client.ExceptionConvertorHelper(new List<Remoting.V2.Client.IExceptionConvertor>()
+        private static Remoting.V2.Client.ExceptionConvertorHelperBase clientHelper
+            = new Remoting.V2.Client.ExceptionConvertorHelperBase(new List<Remoting.V2.Client.IExceptionConvertor>()
                 {
                     new CustomConvertorClient(),
                 });

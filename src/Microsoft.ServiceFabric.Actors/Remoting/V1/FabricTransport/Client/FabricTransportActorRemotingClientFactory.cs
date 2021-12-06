@@ -5,10 +5,13 @@
 
 namespace Microsoft.ServiceFabric.Actors.Remoting.V1.FabricTransport.Client
 {
+    using System;
     using System.Collections.Generic;
+    using Microsoft.ServiceFabric.Actors.Client;
     using Microsoft.ServiceFabric.Actors.Remoting.Client;
     using Microsoft.ServiceFabric.Services.Client;
     using Microsoft.ServiceFabric.Services.Communication.Client;
+    using Microsoft.ServiceFabric.Services.Remoting.Client;
     using Microsoft.ServiceFabric.Services.Remoting.FabricTransport;
     using Microsoft.ServiceFabric.Services.Remoting.V1;
     using Microsoft.ServiceFabric.Services.Remoting.V1.Client;
@@ -29,9 +32,26 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.V1.FabricTransport.Client
         /// <param name="callbackClient">
         ///     The callback client that receives the callbacks from the service.
         /// </param>
+        [Obsolete]
         public FabricTransportActorRemotingClientFactory(
             IServiceRemotingCallbackClient callbackClient)
             : this(FabricTransportRemotingSettings.GetDefault(), callbackClient)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FabricTransportActorRemotingClientFactory"/> class.
+        /// </summary>
+        /// <param name="callbackClient">
+        ///     The callback client that receives the callbacks from the service.
+        /// </param>
+        /// <param name="exceptionConvertors">
+        ///     Convertors to convert service exception to user exception.
+        /// </param>
+        public FabricTransportActorRemotingClientFactory(
+            IServiceRemotingCallbackClient callbackClient,
+            IEnumerable<IExceptionConvertor> exceptionConvertors)
+            : this(FabricTransportRemotingSettings.GetDefault(), callbackClient, exceptionConvertors)
         {
         }
 
@@ -55,6 +75,7 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.V1.FabricTransport.Client
         /// <param name="traceId">
         ///     Id to use in diagnostics traces from this component.
         /// </param>
+        [Obsolete]
         public FabricTransportActorRemotingClientFactory(
             FabricTransportRemotingSettings fabricTransportRemotingSettings,
             IServiceRemotingCallbackClient callbackClient,
@@ -62,6 +83,46 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.V1.FabricTransport.Client
             IEnumerable<IExceptionHandler> exceptionHandlers = null,
             string traceId = null)
             : base(
+                fabricTransportRemotingSettings,
+                callbackClient,
+                servicePartitionResolver,
+                GetExceptionHandlers(exceptionHandlers),
+                traceId)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FabricTransportActorRemotingClientFactory"/> class.
+        /// </summary>
+        /// <param name="fabricTransportRemotingSettings">
+        ///     The settings for the fabric transport. If the settings are not provided or null, default settings
+        ///     with no security.
+        /// </param>
+        /// <param name="callbackClient">
+        ///     The callback client that receives the callbacks from the service.
+        /// </param>
+        /// <param name="exceptionConvertors">
+        ///     Convertors to convert service exception to user exception.
+        /// </param>
+        /// <param name="servicePartitionResolver">
+        ///     Service partition resolver to resolve the service endpoints. If not specified, a default
+        ///     service partition resolver returned by <see cref="ServicePartitionResolver.GetDefault"/> is used.
+        /// </param>
+        /// <param name="exceptionHandlers">
+        ///     Exception handlers to handle the exceptions encountered in communicating with the actor.
+        /// </param>
+        /// <param name="traceId">
+        ///     Id to use in diagnostics traces from this component.
+        /// </param>
+        public FabricTransportActorRemotingClientFactory(
+            FabricTransportRemotingSettings fabricTransportRemotingSettings,
+            IServiceRemotingCallbackClient callbackClient,
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
+            IServicePartitionResolver servicePartitionResolver = null,
+            IEnumerable<IExceptionHandler> exceptionHandlers = null,
+            string traceId = null)
+            : base(
+                GetExceptionConvertors(exceptionConvertors),
                 fabricTransportRemotingSettings,
                 callbackClient,
                 servicePartitionResolver,
@@ -81,6 +142,20 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.V1.FabricTransport.Client
 
             handlers.Add(new ActorRemotingExceptionHandler());
             return handlers;
+        }
+
+        private static IEnumerable<IExceptionConvertor> GetExceptionConvertors(
+            IEnumerable<IExceptionConvertor> exceptionConvertors)
+        {
+            var actorConvertors = new List<IExceptionConvertor>();
+            if (exceptionConvertors != null)
+            {
+                actorConvertors.AddRange(exceptionConvertors);
+            }
+
+            actorConvertors.Add(new FabricActorExceptionConvertor());
+
+            return actorConvertors;
         }
     }
 }

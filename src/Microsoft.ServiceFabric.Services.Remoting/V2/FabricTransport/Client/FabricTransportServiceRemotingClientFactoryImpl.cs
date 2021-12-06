@@ -30,10 +30,10 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
         public FabricTransportServiceRemotingClientFactoryImpl(
             ServiceRemotingMessageSerializersManager serializersManager,
             FabricTransportRemotingSettings remotingSettings,
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
             IServiceRemotingCallbackMessageHandler remotingCallbackMessageHandler = null,
             IServicePartitionResolver servicePartitionResolver = null,
             IEnumerable<IExceptionHandler> exceptionHandlers = null,
-            IEnumerable<IExceptionConvertor> exceptionConvertors = null,
             string traceId = null)
             : base(
                 servicePartitionResolver,
@@ -87,7 +87,8 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
                     this.serializersManager,
                     nativeClient,
                     remotingHandler,
-                    this.exceptionConvertors);
+                    this.exceptionConvertors,
+                    this.settings);
                 remotingHandler.ClientConnected += this.OnFabricTransportClientConnected;
                 remotingHandler.ClientDisconnected += this.OnFabricTransportClientDisconnected;
                 return Task.FromResult(client);

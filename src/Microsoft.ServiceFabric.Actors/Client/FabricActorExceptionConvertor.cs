@@ -7,7 +7,7 @@ namespace Microsoft.ServiceFabric.Actors.Client
 {
     using System;
     using Microsoft.ServiceFabric.Services.Communication;
-    using Microsoft.ServiceFabric.Services.Remoting.V2.Client;
+    using Microsoft.ServiceFabric.Services.Remoting.Client;
 
     internal class FabricActorExceptionConvertor : IExceptionConvertor
     {

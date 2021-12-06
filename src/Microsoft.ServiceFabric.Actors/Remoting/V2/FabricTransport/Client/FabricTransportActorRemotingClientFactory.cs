@@ -5,11 +5,13 @@
 
 namespace Microsoft.ServiceFabric.Actors.Remoting.V2.FabricTransport.Client
 {
+    using System;
     using System.Collections.Generic;
     using Microsoft.ServiceFabric.Actors.Client;
     using Microsoft.ServiceFabric.Actors.Remoting.Client;
     using Microsoft.ServiceFabric.Services.Client;
     using Microsoft.ServiceFabric.Services.Communication.Client;
+    using Microsoft.ServiceFabric.Services.Remoting.Client;
     using Microsoft.ServiceFabric.Services.Remoting.FabricTransport;
     using Microsoft.ServiceFabric.Services.Remoting.V2;
     using Microsoft.ServiceFabric.Services.Remoting.V2.Client;
@@ -30,9 +32,24 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.V2.FabricTransport.Client
         /// <param name="callbackMessageHandler">
         ///     The callback client that receives the callbacks from the service.
         /// </param>
+        [Obsolete]
         public FabricTransportActorRemotingClientFactory(
             IServiceRemotingCallbackMessageHandler callbackMessageHandler)
             : this(FabricTransportRemotingSettings.GetDefault(), callbackMessageHandler)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FabricTransportActorRemotingClientFactory"/> class.
+        /// </summary>
+        /// <param name="callbackMessageHandler">
+        ///     The callback client that receives the callbacks from the service.
+        /// </param>
+        /// <param name="exceptionConvertors">Convertors to convert service exception to user exception.</param>
+        public FabricTransportActorRemotingClientFactory(
+            IServiceRemotingCallbackMessageHandler callbackMessageHandler,
+            IEnumerable<IExceptionConvertor> exceptionConvertors)
+            : this(FabricTransportRemotingSettings.GetDefault(), exceptionConvertors, callbackMessageHandler)
         {
         }
 
@@ -57,24 +74,64 @@ namespace Microsoft.ServiceFabric.Actors.Remoting.V2.FabricTransport.Client
         ///     Id to use in diagnostics traces from this component.
         /// </param>
         /// <param name="serializationProvider">This is used to serialize remoting request/response.</param>
-        /// <param name="exceptionConvertors">Convertors to convert service exception to user exception.</param>
+        [Obsolete]
         public FabricTransportActorRemotingClientFactory(
             FabricTransportRemotingSettings fabricTransportRemotingSettings,
             IServiceRemotingCallbackMessageHandler callbackMessageHandler = null,
             IServicePartitionResolver servicePartitionResolver = null,
             IEnumerable<IExceptionHandler> exceptionHandlers = null,
             string traceId = null,
-            IServiceRemotingMessageSerializationProvider serializationProvider = null,
-            IEnumerable<IExceptionConvertor> exceptionConvertors = null)
+            IServiceRemotingMessageSerializationProvider serializationProvider = null)
+            : this(
+                  fabricTransportRemotingSettings,
+                  null,
+                  callbackMessageHandler,
+                  servicePartitionResolver,
+                  exceptionHandlers,
+                  traceId,
+                  serializationProvider)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FabricTransportActorRemotingClientFactory"/> class.
+        /// </summary>
+        /// <param name="fabricTransportRemotingSettings">
+        ///     The settings for the fabric transport. If the settings are not provided or null, default settings
+        ///     with no security.
+        /// </param>
+        /// <param name="exceptionConvertors">Convertors to convert service exception to user exception.</param>
+        /// <param name="callbackMessageHandler">
+        ///     The callback client that receives the callbacks from the service.
+        /// </param>
+        /// <param name="servicePartitionResolver">
+        ///     Service partition resolver to resolve the service endpoints. If not specified, a default
+        ///     service partition resolver returned by <see cref="ServicePartitionResolver.GetDefault"/> is used.
+        /// </param>
+        /// <param name="exceptionHandlers">
+        ///     Exception handlers to handle the exceptions encountered in communicating with the actor.
+        /// </param>
+        /// <param name="traceId">
+        ///     Id to use in diagnostics traces from this component.
+        /// </param>
+        /// <param name="serializationProvider">This is used to serialize remoting request/response.</param>
+        public FabricTransportActorRemotingClientFactory(
+            FabricTransportRemotingSettings fabricTransportRemotingSettings,
+            IEnumerable<IExceptionConvertor> exceptionConvertors,
+            IServiceRemotingCallbackMessageHandler callbackMessageHandler = null,
+            IServicePartitionResolver servicePartitionResolver = null,
+            IEnumerable<IExceptionHandler> exceptionHandlers = null,
+            string traceId = null,
+            IServiceRemotingMessageSerializationProvider serializationProvider = null)
             : base(
                  IntializeSerializationManager(
                     serializationProvider,
                     fabricTransportRemotingSettings),
+                 exceptionConvertors: GetExceptionConvertors(exceptionConvertors),
                  fabricTransportRemotingSettings,
                  callbackMessageHandler,
                  servicePartitionResolver,
                  GetExceptionHandlers(exceptionHandlers),
-                 exceptionConvertors: GetExceptionConvertors(exceptionConvertors),
                  traceId)
         {
         }

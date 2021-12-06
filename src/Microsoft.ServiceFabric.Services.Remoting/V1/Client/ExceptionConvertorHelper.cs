@@ -3,16 +3,19 @@
 // Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
 // ------------------------------------------------------------
 
-namespace Microsoft.ServiceFabric.Services.Remoting.V2.Client
+namespace Microsoft.ServiceFabric.Services.Remoting.V1.Client
 {
     using System;
     using System.Collections.Generic;
+    using System.Fabric;
     using System.IO;
     using System.Runtime.Serialization;
     using System.Xml;
+    using Microsoft.ServiceFabric.FabricTransport;
+    using Microsoft.ServiceFabric.Services.Communication;
     using Microsoft.ServiceFabric.Services.Remoting.Client;
     using Microsoft.ServiceFabric.Services.Remoting.FabricTransport;
-    using Microsoft.ServiceFabric.Services.Remoting.V2;
+    using Microsoft.ServiceFabric.Services.Remoting.V1;
 
     internal class ExceptionConvertorHelper : ExceptionConvertorHelperBase
     {
@@ -21,7 +24,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Client
         {
         }
 
-        public bool TryDeserializeRemoteException(Stream stream, out RemoteException2 remoteException)
+        public bool TryDeserializeRemoteException(byte[] bytes, out RemoteException2 remoteException)
         {
             remoteException = null;
             var serializer = new DataContractSerializer(
@@ -33,12 +36,14 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Client
 
             try
             {
-                stream.Seek(0, SeekOrigin.Begin);
-                using (var reader = XmlDictionaryReader.CreateBinaryReader(stream, XmlDictionaryReaderQuotas.Max))
+                using (var stream = new MemoryStream(bytes))
                 {
-                    remoteException = (RemoteException2)serializer.ReadObject(reader);
+                    using (var reader = XmlDictionaryReader.CreateBinaryReader(stream, XmlDictionaryReaderQuotas.Max))
+                    {
+                        remoteException = (RemoteException2)serializer.ReadObject(reader);
 
-                    return true;
+                        return true;
+                    }
                 }
             }
             catch (Exception)
@@ -49,12 +54,12 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Client
             return false;
         }
 
-        public bool TryDeserializeRemoteException(Stream stream, out Exception exception)
+        public bool TryDeserializeRemoteException(byte[] bytes, out Exception exception)
         {
             exception = null;
             if (this.RemotingSettings.AllowedExceptionSerializationMethods.HasFlag(ExceptionSerializationOptions.DataContract))
             {
-                if (this.TryDeserializeRemoteException(stream, out RemoteException2 remoteException))
+                if (this.TryDeserializeRemoteException(bytes, out RemoteException2 remoteException))
                 {
                     var svcEx = this.FromRemoteException(remoteException);
                     exception = this.FromServiceException(svcEx);
@@ -64,7 +69,9 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Client
             }
             else
             {
-                return RemoteException.ToException(stream, out exception);
+                return RemoteExceptionInformation.ToException(
+                                new RemoteExceptionInformation(bytes),
+                                out exception);
             }
 
             return false;

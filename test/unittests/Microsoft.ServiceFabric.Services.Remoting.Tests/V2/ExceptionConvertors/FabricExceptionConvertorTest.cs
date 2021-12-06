@@ -40,8 +40,8 @@ namespace Microsoft.ServiceFabric.Services.Remoting.Tests.V2.ExceptionConvertors
                 new Remoting.V2.Client.FabricExceptionConvertor(),
             };
 
-        private static Remoting.V2.Client.ExceptionConvertorHelper clientHelper
-            = new Remoting.V2.Client.ExceptionConvertorHelper(clientConvertors);
+        private static Remoting.V2.Client.ExceptionConvertorHelperBase clientHelper
+            = new Remoting.V2.Client.ExceptionConvertorHelperBase(clientConvertors);
 
         private static List<FabricException> fabricExceptions = new List<FabricException>()
         {
