@@ -138,7 +138,6 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
 
                 if (header != null && header.TryGetHeaderValue("HasRemoteException", out var headerValue))
                 {
-                    // Attempt DCS first
                     if (this.exceptionConvertorHelper.TryDeserializeRemoteException(retval.GetBody().GetRecievedStream(), out Exception exception))
                     {
                         if (exception is AggregateException)
@@ -148,21 +147,16 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.FabricTransport.Client
 
                         throw new AggregateException(exception);
                     }
-
-                    var isDeserialzied =
-                        RemoteException.ToException(
-                            retval.GetBody().GetRecievedStream(),
-                            out var e);
-                    if (isDeserialzied)
-                    {
-                        throw new AggregateException(e);
-                    }
                     else
                     {
-                        throw new ServiceException(e.GetType().FullName, string.Format(
-                            CultureInfo.InvariantCulture,
-                            Remoting.SR.ErrorDeserializationFailure,
-                            e.ToString()));
+                        if (exception != null)
+                        {
+                            // RemoteException.ToException sets out exception param with reason for deserialization failure.
+                            throw new ServiceException(exception.GetType().FullName, string.Format(
+                                CultureInfo.InvariantCulture,
+                                Remoting.SR.ErrorDeserializationFailure,
+                                exception.ToString()));
+                        }
                     }
                 }
 

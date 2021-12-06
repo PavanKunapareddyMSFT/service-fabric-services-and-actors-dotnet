@@ -12,16 +12,18 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Runtime
     using System.Runtime.Serialization;
     using System.Xml;
     using Microsoft.ServiceFabric.Services.Communication;
+    using Microsoft.ServiceFabric.Services.Remoting.FabricTransport;
+    using Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime;
 
     internal class ExceptionConvertorHelper
     {
         private IEnumerable<IExceptionConvertor> convertors;
-        private int remotingExceptionDepth;
+        private FabricTransportRemotingListenerSettings listenerSettings;
 
-        public ExceptionConvertorHelper(IEnumerable<IExceptionConvertor> convertors, int remotingExceptionDepth)
+        public ExceptionConvertorHelper(IEnumerable<IExceptionConvertor> convertors, FabricTransportRemotingListenerSettings listenerSettings)
         {
             this.convertors = convertors;
-            this.remotingExceptionDepth = remotingExceptionDepth;
+            this.listenerSettings = listenerSettings;
         }
 
         public ServiceException ToServiceException(Exception originalException, int currentDepth)
@@ -33,7 +35,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Runtime
                 {
                     if (convertor.TryConvertToServiceException(originalException, out serviceException))
                     {
-                        if (++currentDepth > this.remotingExceptionDepth)
+                        if (++currentDepth > this.listenerSettings.RemotingExceptionDepth)
                         {
                             break;
                         }
@@ -45,7 +47,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Runtime
                             int currentBreadth = 0;
                             foreach (var inner in innerEx)
                             {
-                                if (++currentBreadth > this.remotingExceptionDepth)
+                                if (++currentBreadth > this.listenerSettings.RemotingExceptionDepth)
                                 {
                                     break;
                                 }
@@ -118,10 +120,23 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Runtime
 
         public List<ArraySegment<byte>> SerializeRemoteException(Exception exception)
         {
-            var svcEx = this.ToServiceException(exception);
-            var remoteEx = this.ToRemoteException(svcEx);
+            /*
+             * If both BinaryFormatter and DCS(compat) are allowed
+             *  - On the service side, serialize with BinaryFormatter to not break old clients
+             *  - On the client side, attempt DCS first, then BinaryFormatter if DCS fails.
+             */
 
-            return this.SerializeRemoteException(remoteEx);
+            if (this.listenerSettings.AllowedExceptionSerializationMethods.HasFlag(ExceptionSerializationOptions.BinaryFormatter))
+            {
+                return RemoteException.FromException(exception).Data;
+            }
+            else
+            {
+                var svcEx = this.ToServiceException(exception);
+                var remoteEx = this.ToRemoteException(svcEx);
+
+                return this.SerializeRemoteException(remoteEx);
+            }
         }
 
         public class DefaultExceptionConvetor : IExceptionConvertor

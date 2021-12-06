@@ -33,7 +33,10 @@ namespace Microsoft.ServiceFabric.Services.Remoting.Tests.V2.ExceptionConvertors
                 {
                     new CustomConvertorRuntime(),
                 },
-                3);
+                new FabricTransportRemotingListenerSettings()
+                {
+                    RemotingExceptionDepth = 2,
+                });
 
         private static Remoting.V2.Client.ExceptionConvertorHelper clientHelper
             = new Remoting.V2.Client.ExceptionConvertorHelper(new List<Remoting.V2.Client.IExceptionConvertor>()

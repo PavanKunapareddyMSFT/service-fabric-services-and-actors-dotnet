@@ -24,6 +24,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime
         private int headerMaxBufferCount;
         private bool useWrappedMessage;
         private int remotingExceptionDepth;
+        private ExceptionSerializationOptions exSerOptions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FabricTransportRemotingListenerSettings"/> class with default values.
@@ -35,6 +36,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime
             this.headerMaxBufferCount = Constants.DefaultHeaderMaxBufferCount;
             this.useWrappedMessage = false;
             this.remotingExceptionDepth = DefaultRemotingExceptionDepth;
+            this.exSerOptions = ExceptionSerializationOptions.DataContract;
         }
 
         private FabricTransportRemotingListenerSettings(FabricTransportListenerSettings listenerSettings)
@@ -197,6 +199,15 @@ namespace Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Runtime
                     this.remotingExceptionDepth = value;
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets or sets the allowed exception serialization methods.
+        /// </summary>
+        public ExceptionSerializationOptions AllowedExceptionSerializationMethods
+        {
+            get { return this.exSerOptions; }
+            set { this.exSerOptions = value; }
         }
 
         internal static object DefaultEndpointResourceName

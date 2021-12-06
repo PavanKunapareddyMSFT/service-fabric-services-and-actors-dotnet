@@ -28,7 +28,10 @@ namespace Microsoft.ServiceFabric.Actors.Tests.ExceptionConvertors
             };
 
         private static Services.Remoting.V2.Runtime.ExceptionConvertorHelper runtimeHelper
-            = new Services.Remoting.V2.Runtime.ExceptionConvertorHelper(runtimeConvertors, 2);
+            = new Services.Remoting.V2.Runtime.ExceptionConvertorHelper(runtimeConvertors, new FabricTransportRemotingListenerSettings()
+            {
+                RemotingExceptionDepth = 2,
+            });
 
         private static List<Services.Remoting.V2.Client.IExceptionConvertor> clientConvertors
             = new List<Services.Remoting.V2.Client.IExceptionConvertor>()

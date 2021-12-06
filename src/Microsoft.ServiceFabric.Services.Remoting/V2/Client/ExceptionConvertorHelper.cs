@@ -11,15 +11,19 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Client
     using System.IO;
     using System.Runtime.Serialization;
     using System.Xml;
+    using Microsoft.ServiceFabric.FabricTransport;
     using Microsoft.ServiceFabric.Services.Communication;
+    using Microsoft.ServiceFabric.Services.Remoting.FabricTransport;
 
     internal class ExceptionConvertorHelper
     {
         private IEnumerable<IExceptionConvertor> convertors;
+        private FabricTransportRemotingSettings remotingSettings;
 
-        public ExceptionConvertorHelper(IEnumerable<IExceptionConvertor> convertors)
+        public ExceptionConvertorHelper(IEnumerable<IExceptionConvertor> convertors, FabricTransportRemotingSettings remotingSettings)
         {
             this.convertors = convertors;
+            this.remotingSettings = remotingSettings;
         }
 
         public Exception FromServiceException(ServiceException serviceException)
@@ -118,12 +122,19 @@ namespace Microsoft.ServiceFabric.Services.Remoting.V2.Client
         public bool TryDeserializeRemoteException(Stream stream, out Exception exception)
         {
             exception = null;
-            if (this.TryDeserializeRemoteException(stream, out RemoteException2 remoteException))
+            if (this.remotingSettings.AllowedExceptionSerializationMethods.HasFlag(ExceptionSerializationOptions.DataContract))
             {
-                var svcEx = this.FromRemoteException(remoteException);
-                exception = this.FromServiceException(svcEx);
+                if (this.TryDeserializeRemoteException(stream, out RemoteException2 remoteException))
+                {
+                    var svcEx = this.FromRemoteException(remoteException);
+                    exception = this.FromServiceException(svcEx);
 
-                return true;
+                    return true;
+                }
+            }
+            else
+            {
+                return RemoteException.ToException(stream, out exception);
             }
 
             return false;

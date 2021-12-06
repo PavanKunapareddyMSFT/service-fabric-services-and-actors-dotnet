@@ -25,6 +25,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.FabricTransport
         private int headerBufferSize;
         private int headerMaxBufferCount;
         private bool useWrappedMessage;
+        private ExceptionSerializationOptions exSerOptions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FabricTransportRemotingSettings"/> class with default values.
@@ -35,6 +36,7 @@ namespace Microsoft.ServiceFabric.Services.Remoting.FabricTransport
             this.headerBufferSize = Constants.DefaultHeaderBufferSize;
             this.headerMaxBufferCount = Constants.DefaultHeaderMaxBufferCount;
             this.useWrappedMessage = false;
+            this.exSerOptions = ExceptionSerializationOptions.DataContract;
         }
 
         internal FabricTransportRemotingSettings(FabricTransportSettings fabricTransportSettings)
@@ -164,6 +166,15 @@ namespace Microsoft.ServiceFabric.Services.Remoting.FabricTransport
         {
             get { return this.useWrappedMessage; }
             set { this.useWrappedMessage = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the allowed exception serialization methods.
+        /// </summary>
+        public ExceptionSerializationOptions AllowedExceptionSerializationMethods
+        {
+            get { return this.exSerOptions; }
+            set { this.exSerOptions = value; }
         }
 
         /// <summary>
